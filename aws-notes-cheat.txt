@@ -1,0 +1,45 @@
+
+use aws to launch stack (cloud formation template)
+scp aws key to launcher
+ssh to launcher box
+Go to director client path
+ add key path to .conf file
+
+Go to director server path
+start director
+nohup ./bin/cloudera-director-server &
+
+Go to director client path
+bootstrap the cluster nodes and cm
+./bin/cloudera-director bootstrap-remote aws.simple.conf --lp.remote.hostAndPort=127.0.0.1:7189 --lp.remote.username=admin --lp.remote.password=admin
+
+Connecting to aws
+
+browser apps require ssh tunnel
+director
+ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 ec2-user@launcher-eip
+
+cm & nav ports
+ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7180:cm-private-ip:7180 -L 7187:cm-private-ip:7187 ec2-user@launcher-eip
+
+After 'uninstall'
+clean up uninstalls in the cluster
+hdfs nn dirs need to be clean so remove old remnants of:
+/data0/dfs/nn/*
+/data1/dfs/nn/*
+
+dn clean up
+/data0/dfs/dn/*
+/data1/dfs/dn/*
+
+hbase zk issue since zk starts up dir wasnt cleaned out
+on hbase master:
+$ hbase zkcli
+$ rmr /hbase
+
+TLS? and SSL? UGH
+
+kerberos
+install kdc
+https://wiki.cloudera.com/display/FieldTechServices/Enabling+Kerberos+using+Cloudera+Manager
+
