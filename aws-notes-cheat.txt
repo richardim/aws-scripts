@@ -39,7 +39,57 @@ $ rmr /hbase
 
 TLS? and SSL? UGH
 
+on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
+sudo visudo
+#Defaults requiretty
+
 kerberos
+https://github.com/hunggpham/krb-bootstrap
 install kdc
 https://wiki.cloudera.com/display/FieldTechServices/Enabling+Kerberos+using+Cloudera+Manager
+
+sudo yum install krb5-*
+
+change realm in /etc/krb5.conf
+in lib defaults
+  udp_preference_limit = 1
+Edit /var/kerberos/krb5kdc/kadm5.acl on the kdc to match your realm.
+
+sudo kdb5_util create -s
+sudo rm /etc/krb5.keytab
+sudo service krb5kdc start
+sudo service kadmin start
+
+Copy krb5.conf to every node in the cluster, including the CM server.
+
+test krb
+sudo kadmin.local
+kadmin: addprinc test
+kadmin: listprincs
+kinit -V test
+
+install jce using cm upgrade wizard for agents
+
+create cm user princ
+sudo kadmn.local
+kadmin:  addprinc -pw <Password> cloudera-scm/admin@YOUR-LOCAL-REALM.COM
+
+WIZARD
+may require restart kdc
+may require generate credentials upon first failure.
+
+kadmin:  addprinc hdfs@YOUR-LOCAL-REALM.COM
+kinit hdfs@YOURLREAL.COM
+
+create user accounts
+useradd -u <number greater than 1000> uname (script to do multiples on all nodes)
+kadmin:  addprinc uname@YOUR-LOCAL-REALM.COM
+kinit uname@YOURLREAL.COM
+
+create hdfs home folder (need to be hdfs super user)
+$ hadoop fs -mkdir /user/rim
+$ hadoop fs -chown joe /user/rim
+
+
+
 
