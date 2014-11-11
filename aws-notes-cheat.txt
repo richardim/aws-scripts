@@ -1,3 +1,4 @@
+https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=AWS-Cloudera-Infrastructure&templateURL=https:%2F%2Fs3.amazonaws.com%2Fquickstart-reference%2Fcloudera%2Fhadoop%2Flatest%2Ftemplates%2FTemplate1-AWS-Infrastructure-Cloudera.template
 
 use aws to launch stack (cloud formation template)
 scp aws key to launcher
@@ -39,7 +40,7 @@ $ rmr /hbase
 
 TLS? and SSL? UGH
 
-on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
+//on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
 sudo visudo
 #Defaults requiretty
 
@@ -73,6 +74,10 @@ install jce using cm upgrade wizard for agents
 create cm user princ
 sudo kadmn.local
 kadmin:  addprinc -pw <Password> cloudera-scm/admin@YOUR-LOCAL-REALM.COM
+
+in /var/kerberos/krb5kdc/kdc.conf match realm and add
+max_renewable_life = 7d 0h 0m 0s
+  default_principal_flags = +renewable, +forwardable
 
 WIZARD
 may require restart kdc
