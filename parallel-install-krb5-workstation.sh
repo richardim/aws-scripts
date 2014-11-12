@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOSTS="10.0.1.185 10.0.1.166 10.0.1.167 10.0.1.168 10.0.1.169 10.0.1.170"
+HOSTS="10.0.1.64 10.0.1.81 10.0.1.82 10.0.1.83 10.0.1.84 10.0.1.85"
 
 for HOST in ${HOSTS}; do
     ssh -t -i /home/ec2-user/richard-im-aws.pem ec2-user@${HOST} "sudo yum install krb5-workstation"

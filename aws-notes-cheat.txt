@@ -1,3 +1,4 @@
+/////////////// Set up cluster ///////////////////////
 https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=AWS-Cloudera-Infrastructure&templateURL=https:%2F%2Fs3.amazonaws.com%2Fquickstart-reference%2Fcloudera%2Fhadoop%2Flatest%2Ftemplates%2FTemplate1-AWS-Infrastructure-Cloudera.template
 
 use aws to launch stack (cloud formation template)
@@ -21,7 +22,22 @@ director
 ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 ec2-user@launcher-eip
 
 cm & nav ports
-ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7180:cm-private-ip:7180 -L 7187:cm-private-ip:7187 ec2-user@launcher-eip
+ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 -L 7180:<cm-private-ip>:7180 -L 7187:<cm-private-ip>:7187 ec2-user@launcher-eip
+
+make sure to modify CM host servers agent
+stop the management services on the host
+/etc/cloudera-scm-agent/config.ini hostname needs to be real not localhost
+under hosts, decommission 'bad' instance with 7 roles.  delete
+Recommissions 'new' instance, under mgmt->instances do Add Role Instances to re add.
+restart services
+may need restart agent: sudo service cloudera-scm-agent hard_restart_confirmed
+
+// terminate and delete from director //
+
+/////////////// Uninstall CDH ////////////////////////
+http://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_ig_uninstall_cm.html
+deactivate parcels
+remove from hosts
 
 After 'uninstall'
 clean up uninstalls in the cluster
@@ -39,11 +55,12 @@ $ hbase zkcli
 $ rmr /hbase
 
 TLS? and SSL? UGH
-
+///////////////// Note /////////////////////////////
 //on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
 sudo visudo
 #Defaults requiretty
 
+//////////////// install kerberos //////////////////////////
 kerberos
 https://github.com/hunggpham/krb-bootstrap
 install kdc
@@ -61,16 +78,24 @@ sudo rm /etc/krb5.keytab
 sudo service krb5kdc start
 sudo service kadmin start
 
-Copy krb5.conf to every node in the cluster, including the CM server.
+install krb workstation on all nodes - script
+distribute krb5.conf to every node in the cluster, including the CM server. - script
+mv krb5 conf to /etc - script
 
-test krb
+/////////////////// test krb /////////////////////
 sudo kadmin.local
 kadmin: addprinc test
 kadmin: listprincs
+exit
+
 kinit -V test
+kvno test
 
-install jce using cm upgrade wizard for agents
-
+//////////////////// configure kerberos in Cloudera stuff /////////////
+// install jce using cm upgrade wizard for agents
+In CM, Hosts->Re-Run upgrade wizard, click through
+  cm server host agent may fail
+   
 create cm user princ
 sudo kadmn.local
 kadmin:  addprinc -pw <Password> cloudera-scm/admin@YOUR-LOCAL-REALM.COM
