@@ -24,17 +24,21 @@ ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 ec2-user@launch
 cm & nav ports
 ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 -L 7180:<cm-private-ip>:7180 -L 7187:<cm-private-ip>:7187 ec2-user@launcher-eip
 
+//////////////////////////// install jce using cm upgrade wizard for agents ////////////////////
+In CM, Hosts->Re-Run upgrade wizard, click through
+  cm server host agent may fail
+  // note //
 make sure to modify CM host servers agent
 stop the management services on the host
 /etc/cloudera-scm-agent/config.ini hostname needs to be real not localhost
-under hosts, decommission 'bad' instance with 7 roles.  delete
+under hosts, remove from cluster then decommission 'bad' instance with 7 roles.  delete
 Recommissions 'new' instance, under mgmt->instances do Add Role Instances to re add.
 restart services
 may need restart agent: sudo service cloudera-scm-agent hard_restart_confirmed
 
-// terminate and delete from director //
+install services we want - hue impala hive sentry
 
-/////////////// Uninstall CDH ////////////////////////
+/////////////// if Uninstall CDH ////////////////////////
 http://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_ig_uninstall_cm.html
 deactivate parcels
 remove from hosts
@@ -54,7 +58,8 @@ on hbase master:
 $ hbase zkcli
 $ rmr /hbase
 
-TLS? and SSL? UGH
+ready for install again
+
 ///////////////// Note /////////////////////////////
 //on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
 sudo visudo
@@ -65,6 +70,8 @@ kerberos
 https://github.com/hunggpham/krb-bootstrap
 install kdc
 https://wiki.cloudera.com/display/FieldTechServices/Enabling+Kerberos+using+Cloudera+Manager
+
+go on cm node in aws not edge
 
 sudo yum install krb5-*
 
@@ -92,15 +99,14 @@ kinit -V test
 kvno test
 
 //////////////////// configure kerberos in Cloudera stuff /////////////
-// install jce using cm upgrade wizard for agents
-In CM, Hosts->Re-Run upgrade wizard, click through
-  cm server host agent may fail
    
 create cm user princ
-sudo kadmn.local
+sudo kadmin.local
 kadmin:  addprinc -pw <Password> cloudera-scm/admin@YOUR-LOCAL-REALM.COM
+exit
 
 in /var/kerberos/krb5kdc/kdc.conf match realm and add
+renewable = true
 max_renewable_life = 7d 0h 0m 0s
   default_principal_flags = +renewable, +forwardable
 
@@ -108,17 +114,67 @@ WIZARD
 may require restart kdc
 may require generate credentials upon first failure.
 
+sudo kadmin.local
 kadmin:  addprinc hdfs@YOUR-LOCAL-REALM.COM
 kinit hdfs@YOURLREAL.COM
 
 create user accounts
-useradd -u <number greater than 1000> uname (script to do multiples on all nodes)
+  useradd -u <number greater than 1000> uname (script to do multiples on all nodes)
+  
+sudo kadmin.local
 kadmin:  addprinc uname@YOUR-LOCAL-REALM.COM
+exit
 kinit uname@YOURLREAL.COM
+
 
 create hdfs home folder (need to be hdfs super user)
 $ hadoop fs -mkdir /user/rim
 $ hadoop fs -chown joe /user/rim
+
+///////////////////////////// GAZZANG ////////////////////////////////////
+on main gazzang server (cm server host is good choice)
+sudo yum install kernel-headers-$(uname -r) kernel-devel-$(uname -r)
+
+Configure Repo
+sudo vi /etc/yum.repos.d/gazzang.repo
+
+[gazzang]
+name=RHEL $releasever - gazzang.com - base
+baseurl=https://archive.gazzang.com/redhat/stable/$releasever
+enabled=1
+gpgcheck=1
+gpgkey=https://archive.gazzang.com/gpg_gazzang.asc
+
+Add Epel repo and modify the contents for http instead of https
+sudo yum update ca-certificates
+ sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+ sudo vi /etc/yum.repos.d/epel.repo
+ 
+Run installation
+sudo yum install ztrustee-server haveged -y
+
+Post install script
+sudo /usr/lib/ztrustee-server/postinst/setup-rh
+
+Successful?
+curl -k https://localhost/?a=fingerprint
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

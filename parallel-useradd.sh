@@ -5,7 +5,7 @@ USERS="rim"
 I=1001
 for HOST in ${HOSTS}; do
   for USER in ${USERS}; do
-    ssh -t -i /home/ec2-user/richard-im-aws.pem ec2-user@${HOST} "sudo useradd -u $I ${USER}"
+    ssh -o StrictHostKeyChecking=no -t -i /home/ec2-user/richard-im-aws.pem ec2-user@${HOST} "sudo useradd -u $I ${USER}"
     I=$[$I + 1]
   done
   I=1001
