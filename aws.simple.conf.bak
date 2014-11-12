@@ -1,5 +1,4 @@
-# Richard Im - added key, cluster instance type, instance reference, and placement group
-# in instance reference
+
 #
 # Copyright (c) 2014 Cloudera, Inc. All rights reserved.
 #
@@ -121,7 +120,7 @@ provider {
 
 ssh {
     username: ec2-user # for RHEL image
-    privateKey: /home/ec2-user/richard-im-aws.pem # with an absolute path to .pem file
+    privateKey: privateKey-REPLACE-ME # with an absolute path to .pem file
 }
 
 #
@@ -166,15 +165,6 @@ echo 'Hello World!'
 exit 0
 
 """
-    }
-    
-    c34xl {
-        type: c3.4xlarge  # can use both PV (paravirtualization) and HVM AMIs
-        image: ami-9d0b64f4
-
-        tags {
-            owner: ${?USER}
-        }
     }
 }
 
@@ -235,12 +225,6 @@ cluster {
 
     nodes {
         count: 5
-        instance: ${instances.c34xl} {
-          placementGroup: AWS-PLACEMENT-GROUP-us-east-1-11-11-2014
-
-          tags {
-            group: worker
-          }
-        }
+        instance: ${instances.m1x}
     }
 }
