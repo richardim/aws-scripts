@@ -1,4 +1,4 @@
-/////////////// Set up cluster ///////////////////////
+############################## Set up cluster ##############################
 https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=AWS-Cloudera-Infrastructure&templateURL=https:%2F%2Fs3.amazonaws.com%2Fquickstart-reference%2Fcloudera%2Fhadoop%2Flatest%2Ftemplates%2FTemplate1-AWS-Infrastructure-Cloudera.template
 
 use aws to launch stack (cloud formation template)
@@ -24,7 +24,7 @@ ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 ec2-user@launch
 cm & nav ports
 ssh -i /Users/rim/Keys/richard-im-aws.pem -L 7189:localhost:7189 -L 7180:<cm-private-ip>:7180 -L 7187:<cm-private-ip>:7187 ec2-user@launcher-eip
 
-//////////////////////////// install jce using cm upgrade wizard for agents ////////////////////
+############################## install jce using cm upgrade wizard for agents ##############################
 In CM, Hosts->Re-Run upgrade wizard, click through
   cm server host agent may fail
   // note //
@@ -38,7 +38,7 @@ may need restart agent: sudo service cloudera-scm-agent hard_restart_confirmed
 
 install services we want - hue impala hive sentry
 
-/////////////// if Uninstall CDH ////////////////////////
+############################## if Uninstall CDH ##############################
 http://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cm_ig_uninstall_cm.html
 deactivate parcels
 remove from hosts
@@ -131,11 +131,13 @@ create hdfs home folder (need to be hdfs super user)
 $ hadoop fs -mkdir /user/rim
 $ hadoop fs -chown joe /user/rim
 
-///////////////////////////// GAZZANG ////////////////////////////////////
-on main gazzang server (cm server host is good choice)
+#################### GAZZANG - Navigator Keytrustee #######################
+## note to use hdfs encryption must use key trustee for 5.2 which uses ztrustee
+## 3.7 
+# on main gazzang server (cm server host is good choice)
 sudo yum install kernel-headers-$(uname -r) kernel-devel-$(uname -r)
 
-Configure Repo
+# Configure Repo
 sudo vi /etc/yum.repos.d/gazzang.repo
 
 [gazzang]
@@ -145,20 +147,81 @@ enabled=1
 gpgcheck=1
 gpgkey=https://archive.gazzang.com/gpg_gazzang.asc
 
-Add Epel repo and modify the contents for http instead of https
+# Add Epel repo and modify the contents for http instead of https
 sudo yum update ca-certificates
  sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
  sudo vi /etc/yum.repos.d/epel.repo
  
-Run installation
+# Run installation
 sudo yum install ztrustee-server haveged -y
+# this is to make sure the system entropy is high when generating GPG keys
+sudo service haveged start 
+# Add the necessary services to the start order
+sudo chkconfig --level 2345 httpd on
+# ignore # sudo chkconfig --level 2345 postgresql on
+sudo chkconfig --level 2345 postfix on
+sudo chkconfig --level 2345 haveged on
 
-Post install script
+# Post install script
 sudo /usr/lib/ztrustee-server/postinst/setup-rh
 
-Successful?
+# Successful?
 curl -k https://localhost/?a=fingerprint
 
+# Create and 'Organization' for encryption
+sudo /usr/lib/ztrustee-server/orgtool add -n its-sf-frb-gov -c root@$(hostname -f)
+
+* org: its-sf-frb-gov
+* auth-code: revWGYiWf/nUs6RqN/gfOw==
+
+# See created org
+sudo /usr/lib/ztrustee-server/orgtool list
+
+###################### Gazzang - Navigator Ncrypt ######################
+## Add Epel repo; check if epel already configured. yes - change url to http
+## no update certs then add repo.
+sudo yum update ca-certificates
+ sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+ sudo vi /etc/yum.repos.d/epel.repo
+ 
+curl -sL https://archive.gazzang.com/deployment/zncrypt-install.sh | sudo bash
+
+# then register the zncrypt client with ztrustee server
+sudo zncrypt register --skip-ssl-check -s ip-10-0-1-55.ec2.internal -o its-sf-frb-gov --auth=revWGYiWf/nUs6RqN/gfOw==
+
+# master passphrase 15 characters
+# using file encryption, block requires reformat of the block device
+
+## Set up acls - non -kerberos
+sudo -s
+# grab pid of datanode
+PIDS="$(ps -ef | grep -i [d]atanode | awk '{ print $2}')"
+
+# Create profile
+for pid in ${PIDS[@]}; do zncrypt-profile --pid=$pid > /tmp/znc_profile_$pid; done
+
+// This may fail so run as needed
+for profile in "$(ls /tmp/znc_profile_*)"; do zncrypt acl --add -r "ALLOW @hadoop * $(grep "cmdline" $profile | tr [=\"=],[=:=] " " | awk '{ print $2 }' | xargs readlink -f)" --profile-file=$profile; done
+
+# OR #RUN AS ONE LINE #
+sudo -s  # Capture PID(s) of datanode process. Replace [d]atanode below with whatever you want to capture ([h]adoop, etc.) PIDS="$(ps -ef | grep -i [d]atanode | awk '{ print $2}')"   # Generate profile(s), where we use a for loop just in case we get more than one result for pid in ${PIDS[@]}; do zncrypt-profile --pid=$pid > /tmp/znc_profile_$pid; done   # Attach the profiles to the ACL's for profile in "$(ls /tmp/znc_profile_*)"; do zncrypt acl --add -r "ALLOW @hadoop * $(grep "cmdline" $profile | tr [=\"=],[=:=] " " | awk '{ print $2 }' | xargs readlink -f)" --profile-file=$profile; done   # If you added ACLs prior to attaching profiles, make sure you remove them once completed. exit
+
+
+#### performed on 10.0.1.136 all below - verify encryption?
+script this stuff for all hosts?
+# Set up with kerberos
+sudo zncrypt acl --add --rule="ALLOW @hdfs * *"
+
+# Prepare directories to mount/house the encrypted files on each disk - data0/1
+sudo mkdir /var/lib/zncrypt/storage
+sudo mkdir /var/lib/zncrypt/mount
+sudo zncrypt-prepare /var/lib/zncrypt/storage /var/lib/zncrypt/mount
+
+# Encrypt dfs dir - note not to cyclically encrypt a directory target too high to resolve
+# e.g. cant encrypt source data in a target within the same folder higher than the source
+# no dice to do /data0 /data0/zncrypt/mount since the symlink would by pass other subdirs of
+# /data0...
+sudo zncrypt-move encrypt @hadoop /data0/dfs/dn/ /data0/zncrypt/mount/
 
 
 
@@ -177,5 +240,95 @@ curl -k https://localhost/?a=fingerprint
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  100  sudo zncrypt acl --list --all
+  101  sudo ps faux | grep hadoop
+  102  sudo pgrep -f org.apache.hadoop.hdfs
+  103  sudo pgrep -f org.apache.hadoop
+  104  sudo pgrep -f org.apache.hadoop| while read pid; do ps -C $pid; done
+  105  sudo pgrep -f org.apache.hadoop
+  106  ps -C 19848
+  107  ps faux | grep 19848
+  108  sudo pgrep -f org.apache.hadoop| while read pid; do sudo ps -C $pid; done
+  109  sudo pgrep -f org.apache.hadoop| while read pid; do sudo ps faux | grep $pid; done
+  110  sudo pgrep -f org.apache.hadoop| while read pid; do sudo zncrypt-profile -p $pid; done
+  111  sudo pgrep -f org.apache.hadoop| while read pid; do sudo zncrypt-profile -p $pid > $pid.profile; done
+  112  ls
+  113  ls *.profile
+  114  cat ./*.profile
+  115  ls
+  116  grep provided *.profile
+  117  rm -fv 24066.profile 
+  118  for p in $(ls *.profile); do sudo zncrypt --add acl "ALLOW @hadoop * /usr/java#
+  119  #for p in $(ls *.profile); do sudo zncrypt --add acl "ALLOW @hadoop * /usr/java#
+  120  sudo ls /usr/java/default/bin/java
+  121  for p in $(ls *.profile); do sudo zncrypt --add acl "ALLOW @hadoop * /usr/java/default/bin/java" --profile-file $p; done
+  122  zncrypt acl --add
+  123  sudo zncrypt acl --add
+  124  sudo zncrypt acl --help
+  125  for p in $(ls *.profile); do sudo zncrypt acl --add "ALLOW @hadoop * /usr/java/default/bin/java" --profile-file $p; done
+  126  read -s password; for p in $(ls *.profile); do echo $password | sudo zncrypt acl --add --rule "ALLOW @hadoop * /usr/java/default/bin/java" --profile-file $p; done
+  127  echo $password | zncrypt acl --list --all
+  128  echo $password | sudo zncrypt acl --list --all
+  129  df -hT
+  130  ls /dfs
+  131  ls /data0
+  132  ls /data*
+  133  ls /etc/zncrypt
+  134  cat /etc/zncrypt/ztab
+  135  ls /data0/dfs
+  136  ls /data0/dfs/dn
+  137  sudo ls /data0/dfs/dn
+  138  sudo ls /data0/dfs/dn/current
+  139  kvno hdfs
+  140  hadoop fs -ls /
+  141  hadoop fs -ls /user/impala
+  142  ls
+  143  cd ~
+  144  ls
+  145  less profiletool.sh 
+  146  ls
+  147  exit
+  148  history
+  149  for profile in "$(ls /tmp/znc_profile_*)"; do zncrypt acl --add "ALLOW @hadoop * $(grep "cmdline" $profile | tr [=\"=],[=:=] " " | awk '{ print $2 }' | xargs readlink -f)" --profile-file=$profile; done
 
 
