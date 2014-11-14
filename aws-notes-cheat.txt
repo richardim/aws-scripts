@@ -223,6 +223,10 @@ sudo zncrypt-prepare /var/lib/zncrypt/storage /var/lib/zncrypt/mount
 # /data0...
 sudo zncrypt-move encrypt @hadoop /data0/dfs/dn/ /data0/zncrypt/mount/
 
+# to execute script pipe to ssh
+# copy script to server and run on each node
+
+# note printf 'mypassword\nmypassword' | zncrypt register -s ZTRUSTEE_SERVER --org orgname --auth authcode -t single-passphrase
 
 
 
