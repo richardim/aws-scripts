@@ -27,8 +27,8 @@ sudo zncrypt register --skip-ssl-check -s ip-10-0-1-55.ec2.internal -o its-sf-fr
 
 #### performed on 10.0.1.136 all below - verify encryption?
 # script this stuff for all hosts?
-# Set up with kerberos
-sudo zncrypt acl --add --rule="ALLOW @hdfs * *"
+# Set up with kerberos - the acl category has to match here as with the zncrypt call
+sudo zncrypt acl --add --rule="ALLOW @hadoop * *"
 
 # Prepare directories to mount/house the encrypted files on each disk - data0/1
 sudo mkdir -p /data0/zncrypt/storage

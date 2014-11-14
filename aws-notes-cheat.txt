@@ -60,12 +60,12 @@ $ rmr /hbase
 
 ready for install again
 
-///////////////// Note /////////////////////////////
+#################### Note ####################
 //on nodes disable requirement for tty, though ssh with -t flag may prevent need for this
 sudo visudo
 #Defaults requiretty
 
-//////////////// install kerberos //////////////////////////
+#################### install kerberos ####################
 kerberos
 https://github.com/hunggpham/krb-bootstrap
 install kdc
@@ -89,7 +89,7 @@ install krb workstation on all nodes - script
 distribute krb5.conf to every node in the cluster, including the CM server. - script
 mv krb5 conf to /etc - script
 
-/////////////////// test krb /////////////////////
+#################### test krb ####################
 sudo kadmin.local
 kadmin: addprinc test
 kadmin: listprincs
@@ -98,7 +98,7 @@ exit
 kinit -V test
 kvno test
 
-//////////////////// configure kerberos in Cloudera stuff /////////////
+#################### configure kerberos in Cloudera stuff ####################
    
 create cm user princ
 sudo kadmin.local
