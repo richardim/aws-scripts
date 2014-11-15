@@ -210,7 +210,8 @@ sudo -s  # Capture PID(s) of datanode process. Replace [d]atanode below with wha
 #### performed on 10.0.1.136 all below - verify encryption?
 script this stuff for all hosts?
 # Set up with kerberos
-sudo zncrypt acl --add --rule="ALLOW @hdfs * *"
+# Set up with kerberos - the acl category has to match here as with the zncrypt call
+sudo zncrypt acl --add --rule="ALLOW @hadoop * *"
 
 # Prepare directories to mount/house the encrypted files on each disk - data0/1
 sudo mkdir /var/lib/zncrypt/storage
