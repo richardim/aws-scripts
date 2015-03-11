@@ -1,0 +1,65 @@
+#################### install kerberos ####################
+kerberos
+https://github.com/hunggpham/krb-bootstrap
+install kdc
+https://wiki.cloudera.com/display/FieldTechServices/Enabling+Kerberos+using+Cloudera+Manager
+
+go on cm node in aws not edge
+
+sudo yum install krb5-*
+
+change realm in /etc/krb5.conf
+in lib defaults
+  udp_preference_limit = 1
+Edit /var/kerberos/krb5kdc/kadm5.acl on the kdc to match your realm.
+
+sudo kdb5_util create -s
+sudo rm /etc/krb5.keytab
+sudo service krb5kdc start
+sudo service kadmin start
+
+install krb workstation on all nodes - script
+distribute krb5.conf to every node in the cluster, including the CM server. - script
+mv krb5 conf to /etc - script
+
+#################### test krb ####################
+sudo kadmin.local
+kadmin: addprinc test
+kadmin: listprincs
+exit
+
+kinit -V test
+kvno test
+
+#################### configure kerberos in Cloudera stuff ####################
+   
+create cm user princ
+sudo kadmin.local
+kadmin:  addprinc -pw <Password> cloudera-scm/admin@YOUR-LOCAL-REALM.COM
+exit
+
+in /var/kerberos/krb5kdc/kdc.conf match realm and add
+renewable = true
+max_renewable_life = 7d 0h 0m 0s
+  default_principal_flags = +renewable, +forwardable
+
+WIZARD
+may require restart kdc
+may require generate credentials upon first failure.
+
+sudo kadmin.local
+kadmin:  addprinc hdfs@YOUR-LOCAL-REALM.COM
+kinit hdfs@YOURLREAL.COM
+
+create user accounts
+  useradd -u <number greater than 1000> uname (script to do multiples on all nodes)
+  
+sudo kadmin.local
+kadmin:  addprinc uname@YOUR-LOCAL-REALM.COM
+exit
+kinit uname@YOURLREAL.COM
+
+
+create hdfs home folder (need to be hdfs super user)
+$ hadoop fs -mkdir /user/rim
+$ hadoop fs -chown joe /user/rim

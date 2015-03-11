@@ -45,3 +45,6 @@ sudo zncrypt-prepare /data1/zncrypt/storage /data1/zncrypt/mount
 # /data0...
 sudo zncrypt-move encrypt @hadoop /data0/dfs/dn/ /data0/zncrypt/mount/
 sudo zncrypt-move encrypt @hadoop /data1/dfs/dn/ /data1/zncrypt/mount/
+
+# zTrustee server installation - conflict with the REDHAT mod_proxy_html dependencies using a later version of apache (2.4) instead of 2.2 within the govcloud AMI configured repo.  remove those repos temporarily to install correct dependency
+# zNcrypt - manually install GCC - generally I noticed this was installed automagically, but in this ENV it wouldn't...

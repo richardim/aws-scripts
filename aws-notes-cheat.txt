@@ -181,8 +181,8 @@ sudo /usr/lib/ztrustee-server/orgtool list
 ## Add Epel repo; check if epel already configured. yes - change url to http
 ## no update certs then add repo.
 sudo yum update ca-certificates
- sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
- sudo vi /etc/yum.repos.d/epel.repo
+sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+sudo vi /etc/yum.repos.d/epel.repo
  
 curl -sL https://archive.gazzang.com/deployment/zncrypt-install.sh | sudo bash
 
@@ -229,7 +229,7 @@ sudo zncrypt-move encrypt @hadoop /data0/dfs/dn/ /data0/zncrypt/mount/
 
 # note printf 'mypassword\nmypassword' | zncrypt register -s ZTRUSTEE_SERVER --org orgname --auth authcode -t single-passphrase
 
-
+# sudo yum install gcc.x86_64 <-- maybe needed
 
 
 
