@@ -231,6 +231,11 @@ sudo zncrypt-move encrypt @hadoop /data0/dfs/dn/ /data0/zncrypt/mount/
 
 # sudo yum install gcc.x86_64 <-- maybe needed
 
+# also persist services on reboots
+# chkconfig krb5kdc on
+# chkconfig kadmin on
+# chkconfig postgresql on
+
 
 
 
